@@ -1,84 +1,84 @@
-import java.util.*;
+	import java.util.*;
 
 public class SysLib {
     public static int exec( String args[] ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.EXEC, 0, args );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.EXEC, 0, args );
     }
 
     public static int join( ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.WAIT, 0, null );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.WAIT, 0, null );
     }
 
     public static int boot( ) {
-	return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.BOOT, 0, null );
+	return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.BOOT, 0, null );
     }
 
     public static int exit( ) {
-	return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.EXIT, 0, null );
+	return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.EXIT, 0, null );
     }
 
     public static int sleep( int milliseconds ) {
-	return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.SLEEP, milliseconds, null );
+	return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.SLEEP, milliseconds, null );
     }
 
     public static int disk( int type ) {
-	return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_DISK,
+	return Kernel.interrupt( Kernel.INTERRUPT_DISK,
 				 type, 0, null );
     }
 
     public static int cin( StringBuffer s ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.READ, 0, s );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.READ, 0, s );
     }
 
     public static int cout( String s ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.WRITE, 1, s );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.WRITE, 1, s );
     }
 
     public static int cerr( String s ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.WRITE, 2, s );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.WRITE, 2, s );
     }
 
     public static int rawread( int blkNumber, byte[] b ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.RAWREAD, blkNumber, b );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.RAWREAD, blkNumber, b );
     }
 
     public static int rawwrite( int blkNumber, byte[] b ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.RAWWRITE, blkNumber, b );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.RAWWRITE, blkNumber, b );
     }
 
     public static int sync( ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.SYNC, 0, null );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.SYNC, 0, null );
     }
 
     public static int cread( int blkNumber, byte[] b ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.CREAD, blkNumber, b );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.CREAD, blkNumber, b );
     }
 
     public static int cwrite( int blkNumber, byte[] b ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.CWRITE, blkNumber, b );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.CWRITE, blkNumber, b );
     }
 
     public static int flush( ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.CFLUSH, 0, null );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.CFLUSH, 0, null );
     }
 
     public static int csync( ) {
-        return Kernel_Incomplete.interrupt( Kernel_Incomplete.INTERRUPT_SOFTWARE,
-				 Kernel_Incomplete.CSYNC, 0, null );
+        return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
+				 Kernel.CSYNC, 0, null );
     }
 
     public static String[] stringToArgs( String s ) {
