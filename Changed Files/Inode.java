@@ -103,4 +103,25 @@ public class Inode {
       SysLib.rawwrite(blockNumber, buffer);
       return 1;
    }
+
+
+   /****************************************************************************
+    * findTargetBlock
+    *
+    * //Todo
+    ***************************************************************************/
+   int findTargetBlock(int seekPointer) {
+      int var2 = seekPointer / 512;
+      if (var2 < 11) {
+         return this.direct[var2];
+      } else if (this.indirect < 0) {
+         return -1;
+      } else {
+         byte[] var3 = new byte[512];
+         SysLib.rawread(this.indirect, var3);
+         int var4 = var2 - 11;
+         return SysLib.bytes2short(var3, var4 * 2);
+      }
+   }
+
 }

@@ -24,29 +24,107 @@ public class FileSystem {
       close( dirEnt );
    }
 
-   void sync( ) {
+   public void sync( )
+   {
+       FileTableEntry fileTable = this.open("/", "w");
+       byte[] buffer = this.directory.directory2bytes();
+       this.write(fileTable, buffer);
+       this.close(fileTable);
+       this.superblock.sync();
    }
-   boolean format( int files ) {
+
+   boolean format( int files )
+   {
+       while(!this.filetable.fempty())
+       {
+           /* Do Nothing */
+       }
+
+       this.superblock.format(files);
+       this.directory = new Directory(this.superblock.inodeBlocks);
+       this.filetable = new FileTable(this.directory);
+       return true;
    }
-   FileTableEntry open( String filename, String mode ) {
+
+   public FileTableEntry open( String filename, String mode )
+   {
+       FileTableEntry fileTableEntry = this.filetable.falloc(filename, mode);
+
+       if(mode == "w" && !this.deallocAllBlocks(fileTableEntry))
+       {
+           return null;
+       }
+       else
+       {
+           return fileTableEntry;
+       }
    }
-   boolean close( FileTableEntry ftEnt ) {
+
+   public synchronized boolean close( FileTableEntry ftEnt )
+   {
+       ftEnt.count--;
+
+       return ftEnt.count > 0 || this.filetable.ffree(ftEnt);
    }
-   int fsize( FileTableEntry ftEnt ) {
+
+   public synchronized int fsize( FileTableEntry ftEnt )
+   {
+       return ftEnt.inode.length;
    }
-   int read( FileTableEntry ftEnt, byte[] buffer ) {
+
+   public int read( FileTableEntry ftEnt, byte[] buffer )
+   {
+       if (ftEnt.mode != "w" && ftEnt.mode != "a") {
+           int index = 0;
+           int max = buffer.length;
+
+           synchronized(ftEnt) {
+               while(max > 0 && ftEnt.seekPtr < this.fsize(ftEnt)) {
+                   int targetBlock = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
+                   if (targetBlock == -1) {
+                       break;
+                   }
+
+                   byte[] buffer2 = new byte[512];
+                   SysLib.rawread(targetBlock, buffer2);
+                   int block = ftEnt.seekPtr % 512;
+                   int var9 = 512 - block;
+                   int var10 = this.fsize(ftEnt) - ftEnt.seekPtr;
+                   int var11 = Math.min(Math.min(var9, max), var10);
+                   System.arraycopy(buffer2, block, buffer, index, var11);
+                   ftEnt.seekPtr += var11;
+                   index += var11;
+                   max -= var11;
+               }
+
+               return index;
+           }
+       } else {
+           return -1;
+       }
    }
-   int write( FileTableEntry ftEnt, byte[] buffer ) {
+
+   public int write( FileTableEntry ftEnt, byte[] buffer )
+   {
+
    }
-   private boolean deallocAllBlocks( FileTableEntry ftEnt ) {
+
+   private boolean deallocAllBlocks( FileTableEntry ftEnt )
+   {
+
    }
-   boolean delete( String filename ) {
+
+   public boolean delete( String filename )
+   {
+
    }
 
    private final int SEEK_SET = 0;
    private final int SEEK_CUR = 1;
    private final int SEEK_END = 2;
 
-   int seek( FileTableEntry ftEnt, int offset, int whence ) {
+   public int seek( FileTableEntry ftEnt, int offset, int whence )
+   {
+
    }
 }
