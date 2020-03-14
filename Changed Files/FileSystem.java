@@ -8,7 +8,7 @@ public class FileSystem {
       superblock = new SuperBlock( diskBlocks );
 
       // create directory, and register "/" in directory entry 0
-      directory = new Directory( superblock.inodeBlocks );
+      directory = new Directory( superblock.totalInodes );
 
       // file table is created, and store directory in the file table
       filetable = new FileTable( directory );
@@ -41,7 +41,7 @@ public class FileSystem {
        }
 
        this.superblock.format(files);
-       this.directory = new Directory(this.superblock.inodeBlocks);
+       this.directory = new Directory(this.superblock.totalInodes);
        this.filetable = new FileTable(this.directory);
        return true;
    }
@@ -106,17 +106,103 @@ public class FileSystem {
 
    public int write( FileTableEntry ftEnt, byte[] buffer )
    {
+       if (ftEnt.mode == "r") {
+           return -1;
+       } else {
+           synchronized(ftEnt) {
+               int var4 = 0;
+               int var5 = buffer.length;
 
+               while(var5 > 0) {
+                   int var6 = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
+                   if (var6 == -1) {
+                       short var7 = (short)this.superblock.nextBlock();
+                       switch(ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, var7)) {
+                           case -3:
+                               short var8 = (short)this.superblock.nextBlock();
+                               if (!ftEnt.inode.registerIndexBlock(var8)) {
+                                   SysLib.cerr("ThreadOS: panic on write\n");
+                                   return -1;
+                               }
+
+                               if (ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, var7) != 0) {
+                                   SysLib.cerr("ThreadOS: panic on write\n");
+                                   return -1;
+                               }
+                           case 0:
+                           default:
+                               var6 = var7;
+                               break;
+                           case -2:
+                           case -1:
+                               SysLib.cerr("ThreadOS: filesystem panic on write\n");
+                               return -1;
+                       }
+                   }
+
+                   byte[] var13 = new byte[512];
+                   if (SysLib.rawread(var6, var13) == -1) {
+                       System.exit(2);
+                   }
+
+                   int var14 = ftEnt.seekPtr % 512;
+                   int var9 = 512 - var14;
+                   int var10 = Math.min(var9, var5);
+                   System.arraycopy(buffer, var4, var13, var14, var10);
+                   SysLib.rawwrite(var6, var13);
+                   ftEnt.seekPtr += var10;
+                   var4 += var10;
+                   var5 -= var10;
+                   if (ftEnt.seekPtr > ftEnt.inode.length) {
+                       ftEnt.inode.length = ftEnt.seekPtr;
+                   }
+               }
+
+               ftEnt.inode.toDisk(ftEnt.iNumber);
+               return var4;
+           }
+       }
    }
 
    private boolean deallocAllBlocks( FileTableEntry ftEnt )
    {
+       if (ftEnt.inode.count != 1) {
+           return false;
+       } else {
+           byte[] var2 = ftEnt.inode.unregisterIndexBlock();
+           if (var2 != null) {
+               byte var3 = 0;
 
+               short var4;
+               while((var4 = SysLib.bytes2short(var2, var3)) != -1) {
+                   this.superblock.returnBlock(var4);
+               }
+           }
+
+           int var5 = 0;
+
+           while(true) {
+               Inode var10001 = ftEnt.inode;
+               if (var5 >= 11) {
+                   ftEnt.inode.toDisk(ftEnt.iNumber);
+                   return true;
+               }
+
+               if (ftEnt.inode.direct[var5] != -1) {
+                   this.superblock.returnBlock(ftEnt.inode.direct[var5]);
+                   ftEnt.inode.direct[var5] = -1;
+               }
+
+               ++var5;
+           }
+       }
    }
 
-   public boolean delete( String filename )
+   public boolean delete( String fileName )
    {
-
+       FileTableEntry var2 = this.open(fileName, "w");
+       short var3 = var2.iNumber;
+       return this.close(var2) && this.directory.ifree(var3);
    }
 
    private final int SEEK_SET = 0;
@@ -125,6 +211,31 @@ public class FileSystem {
 
    public int seek( FileTableEntry ftEnt, int offset, int whence )
    {
+       synchronized(ftEnt) {
+           switch(whence) {
+               case 0:
+                   if (offset >= 0 && offset <= this.fsize(ftEnt)) {
+                       ftEnt.seekPtr = offset;
+                       break;
+                   }
 
+                   return -1;
+               case 1:
+                   if (ftEnt.seekPtr + offset >= 0 && ftEnt.seekPtr + offset <= this.fsize(ftEnt)) {
+                       ftEnt.seekPtr += offset;
+                       break;
+                   }
+
+                   return -1;
+               case 2:
+                   if (this.fsize(ftEnt) + offset < 0 || this.fsize(ftEnt) + offset > this.fsize(ftEnt)) {
+                       return -1;
+                   }
+
+                   ftEnt.seekPtr = this.fsize(ftEnt) + offset;
+           }
+
+           return ftEnt.seekPtr;
+       }
    }
 }

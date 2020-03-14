@@ -57,27 +57,31 @@ public class Directory {
 
 
         for (int i = 0; i < this.fnames.length; i++) {
-            String fileName = new String(this.fname[i], 0, this.fsize[i]);
+            String fileName = new String(this.fnames[i], 0, this.fsize[i]);
             byte[] fNameBytes = fileName.getBytes();
 
             System.arraycopy(fileName, 0, buffer, seek, fNameBytes.length);
 
             seek += maxLength;
         }
+
+        return buffer;
     }
 
     public short ialloc(String fileName) {
         // filename is the one of a file to be created.
         // allocates a new inode number for this filename
-        for (int i = 1; i < this.fsize.length(); ++i) {
+        for (int i = 1; i < this.fsize.length; ++i) {
             if (this.fsize[i] == 0) {
-                this.fsize[i] = fileName.length() < maxChars ? fileName.length : maxChars;
+                this.fsize[i] = fileName.length() < maxChars ? fileName.length() : maxChars;
                 fileName.getChars(0, this.fsize[i], this.fnames[i], 0);
                 return (short) i;
             }
             return -1;
         }
 
+        return -1;
+    }
         public boolean ifree(short iNumber) {
             // deallocates this inumber (inode number)
             // the corresponding file will be deleted.
@@ -88,13 +92,31 @@ public class Directory {
             return true;
         }
 
-        public short namei(String fileName) {
+        /*
+        public short namei(String fileName)
+        {
             // returns the inumber corresponding to this filename
-            for (int i = 0; int i < this.fsize.length, i++) {
-                String fileNameCheck = new String(this.fname[i], 0, this.fsize[i]);
+            for (int i = 0; i < this.fsize.length; i++)
+            {
+                String fileNameCheck = new String(this.fnames[i], 0, this.fsize[i]);
                 if (fileName.equals(fileNameCheck))
                     return (short) i;
             }
             return -1;
         }
+        */
+
+        public short namei(String var1) {
+            for(short var2 = 0; var2 < this.fsize.length; ++var2) {
+                if (this.fsize[var2] == var1.length()) {
+                    String var3 = new String(this.fnames[var2], 0, this.fsize[var2]);
+                    if (var1.compareTo(var3) == 0) {
+                        return var2;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
     }

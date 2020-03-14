@@ -1,20 +1,20 @@
-class Superblock {
+class SuperBlock {
    public int totalBlocks; // the number of disk blocks
    public int totalInodes; // the number of inodes
    public int freeList;    // the block number of the free list's head
-   
+
    public SuperBlock( int diskSize ) {
         byte[] superBlock = new byte[Disk.blockSize];
 	short seek = 0; // offset variable
         SysLib.rawread(0, superBlock); //read first block to superBlock
         totalBlocks = SysLib.bytes2int(superBlock, seek);
-	seek += Integer.SIZE;
-        inodeBlocks = SysLib.bytes2int(superBlock, seek);
-	seek += Integer.SIZE;
+	seek += Integer.SIZE / Byte.SIZE;
+        this.totalInodes = SysLib.bytes2int(superBlock, seek);
+	seek += Integer.SIZE / Byte.SIZE;
         freeList = SysLib.bytes2int(superBlock, seek);
 
         if (totalBlocks == diskSize 
-	&& inodeBlocks > 0 
+	&& this.totalInodes > 0
 	&& freeList >= 2) {
             return;
         }
@@ -24,18 +24,21 @@ class Superblock {
 	}
    }
 
+
     public void format(int num) {
 
         totalInodes = num;
 
-        for(int i = 0; i < totalInode; i++) {
+        for(int i = 0; i < totalInodes; i++) {
             Inode newInode = new Inode();
             newInode.flag = 0;
             newInode.toDisk((short)i);
         }
 
-        freeList = Short.SIZE + (totalInode * 32);
-	freeList /= Disk.blockSize;
+        //freeList = (Short.SIZE / Byte.SIZE) + (totalInodes * 32);
+	    //freeList /= Disk.blockSize;
+
+        this.freeList = 2 + this.totalInodes * 32 / 512;
 
         for(int i = freeList; i < totalBlocks; i++) {
             byte[] data = new byte[Disk.blockSize];
@@ -56,13 +59,13 @@ class Superblock {
 
 	short seek = 0; // offset variable
 
-        SysLib.int2bytes(totalBlocks, block, seek);
-	seek += Integer.SIZE;
-        SysLib.int2bytes(totalInodes, block, seek);
-	seek += Integer.SIZE;
-        SysLib.int2bytes(freeList, block, seek);
+        SysLib.int2bytes(totalBlocks, superBlock, seek);
+	seek += Integer.SIZE / Byte.SIZE;
+        SysLib.int2bytes(totalInodes, superBlock, seek);
+	seek += Integer.SIZE / Byte.SIZE;
+        SysLib.int2bytes(freeList, superBlock, seek);
 
-        SysLib.rawwrite(0, block);
+        SysLib.rawwrite(0, superBlock);
     }
 
     public int nextBlock() {
@@ -82,9 +85,9 @@ class Superblock {
         return free;
     }
 
-    public int returnBlock(int block) {
+    public boolean returnBlock(int block) {
         if (block < 0) 
-		return false;
+		    return false;
 	
         byte[] data = new byte[Disk.blockSize];
 

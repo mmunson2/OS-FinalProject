@@ -1,3 +1,5 @@
+import java.util.Vector;
+
 public class FileTable {
 
     private Vector table; // the actual entity of this file table
@@ -9,7 +11,7 @@ public class FileTable {
     } // from the file system
 
     // major public methods
-    public synchronized FileTableEntry falloc(String fileName, String mode) {
+    public synchronized FileTableEntry falloc3(String fileName, String mode) {
         // allocate a new file (structure) table entry for this file name
         // allocate/retrieve and register the corresponding inode using dir
         // increment this inode's count
@@ -80,6 +82,103 @@ public class FileTable {
         return newEntry;
     }
 
+    public synchronized FileTableEntry falloc(String fileName, String mode) {
+        Inode newINode = null;
+
+        short iNumber;
+        while(true) {
+            if (fileName.equals("/")) {
+                iNumber = 0;
+            } else {
+                iNumber = this.dir.namei(fileName);
+            }
+
+            if (iNumber >= 0) {
+                newINode = new Inode(iNumber);
+                if (mode.compareTo("r") == 0) {
+                    if (newINode.flag != 0 && newINode.flag != 1) {
+                        try {
+                            this.wait();
+                        } catch (InterruptedException var7) {
+                            ;
+                        }
+                        continue;
+                    }
+
+                    newINode.flag = 1;
+                    break;
+                }
+
+                if (newINode.flag != 0 && newINode.flag != 3) {
+                    if (newINode.flag == 1 || newINode.flag == 2) {
+                        newINode.flag = (short)(newINode.flag + 3);
+                        newINode.toDisk(iNumber);
+                    }
+
+                    try {
+                        this.wait();
+                    } catch (InterruptedException var6) {
+                        ;
+                    }
+                    continue;
+                }
+
+                newINode.flag = 2;
+                break;
+            }
+
+            if (mode.compareTo("r") == 0) {
+                return null;
+            }
+
+            iNumber = this.dir.ialloc(fileName);
+            newINode = new Inode();
+            newINode.flag = 2;
+            break;
+        }
+
+        ++newINode.count;
+
+        //Todo
+        if(iNumber == -1)
+        {
+            iNumber = 3;
+        }
+
+        newINode.toDisk(iNumber);
+        FileTableEntry var5 = new FileTableEntry(newINode, iNumber, mode);
+        this.table.addElement(var5);
+        return var5;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public synchronized boolean ffree(FileTableEntry e) {
         // receive a file table entry reference
         // save the corresponding inode to the disk
@@ -89,7 +188,7 @@ public class FileTable {
         if (this.table.removeElement(e)) {
             e.inode.count--; //remove inode
             e.inode.flag = 0;
-            e.inode.toDisk(e.iNumberber);
+            e.inode.toDisk(e.iNumber);
             e = null;
             this.notify();
             return true;

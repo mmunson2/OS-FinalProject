@@ -65,7 +65,7 @@ public class Kernel {
 
     // The heart of Kernel
     public static int interrupt(int irq, int cmd, int param, Object args) {
-        TCB myTcb;
+        TCB myTcb = null;
         switch (irq) {
             case INTERRUPT_SOFTWARE: // System calls
                 switch (cmd) {
@@ -77,15 +77,16 @@ public class Kernel {
                         // instantiate and start a disk
                         disk = new Disk(1000);
                         disk.start();
-                        
+
+                        // instantiate synchronized queues
+                        ioQueue = new SyncQueue();
+                        waitQueue = new SyncQueue(scheduler.getMaxThreads());
+
                         // instantiate FileSystem
                         fs = new FileSystem(1000);
                         // instantiate a cache memory
                         cache = new Cache(disk.blockSize, 10);
 
-                        // instantiate synchronized queues
-                        ioQueue = new SyncQueue();
-                        waitQueue = new SyncQueue(scheduler.getMaxThreads());
                         return OK;
                     case EXEC:
                         return sysExec((String[]) args);
@@ -155,8 +156,10 @@ public class Kernel {
                                 System.out.println("threaOS: caused read errors");
                                 return ERROR;
                         }
-                        // return FileSystem.read( param, byte args[] );
-                        return ERROR;
+                        myTcb = scheduler.getMyTcb();
+
+                        return fs.read( myTcb.getFtEnt(param), (byte[]) args);
+                        //return ERROR;
                     case WRITE:
                         switch (param) {
                             case STDIN:
