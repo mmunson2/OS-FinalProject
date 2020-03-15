@@ -1,3 +1,6 @@
+/*******************************************************************************
+ *
+ ******************************************************************************/
 public class TCB {
     private Thread thread = null;
     private int tid = 0;
@@ -6,6 +9,9 @@ public class TCB {
     private int sleepTime = 0;
     public FileTableEntry[] ftEnt = null; // added for the file system
 
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public TCB( Thread newThread, int myTid, int parentTid ) {
 	thread = newThread;
 	tid = myTid;
@@ -23,28 +29,46 @@ public class TCB {
 			    " pid=" + pid + ")");
     }
 
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized Thread getThread( ) {
 	return thread;
     }
 
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized int getTid( ) {
 	return tid;
     }
 
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized int getPid( ) {
 	return pid;
     }
 
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized boolean setTerminated( ) {
 	terminated = true;
 	return terminated;
     }
 
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized boolean getTerminated( ) {
 	return terminated;
     }
 
     // added for the file system
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized int getFd( FileTableEntry entry ) {
 	if ( entry == null )
 	    return -1;
@@ -58,6 +82,9 @@ public class TCB {
     }
 
     // added for the file system
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized FileTableEntry returnFd( int fd ) {
 	if ( fd >= 3 && fd < 32 ) {
 	    FileTableEntry oldEnt = ftEnt[fd];
@@ -69,6 +96,9 @@ public class TCB {
     }
 
     // added for the file systme
+	/***************************************************************************
+	 *
+	 **************************************************************************/
     public synchronized FileTableEntry getFtEnt( int fd ) {
 	if ( fd >= 3 && fd < 32 )
 	    return ftEnt[fd];

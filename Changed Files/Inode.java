@@ -111,16 +111,16 @@ public class Inode {
     * //Todo
     ***************************************************************************/
    int getBlock(int seekPointer) {
-      int var2 = seekPointer / 512;
-      if (var2 < 11) {
-         return this.direct[var2];
+      int blockNumber = seekPointer / 512;
+      if (blockNumber < 11) {
+         return this.direct[blockNumber];
       } else if (this.indirect < 0) {
          return -1;
       } else {
-         byte[] var3 = new byte[512];
-         SysLib.rawread(this.indirect, var3);
-         int var4 = var2 - 11;
-         return SysLib.bytes2short(var3, var4 * 2);
+         byte[] buffer = new byte[512];
+         SysLib.rawread(this.indirect, buffer);
+         int offset = blockNumber - 11;
+         return SysLib.bytes2short(buffer, offset * 2);
       }
    }
 
@@ -130,28 +130,28 @@ public class Inode {
     * //Todo
     ***************************************************************************/
    int makeBlock(int seekPtr, short blockNumber) {
-      int var3 = seekPtr / 512;
-      if (var3 < 11) {
-         if (this.direct[var3] >= 0) {
+      int blockPtr = seekPtr / 512;
+      if (blockPtr < 11) {
+         if (this.direct[blockPtr] >= 0) {
             return -1;
-         } else if (var3 > 0 && this.direct[var3 - 1] == -1) {
+         } else if (blockPtr > 0 && this.direct[blockPtr - 1] == -1) {
             return -2;
          } else {
-            this.direct[var3] = blockNumber;
+            this.direct[blockPtr] = blockNumber;
             return 0;
          }
       } else if (this.indirect < 0) {
          return -3;
       } else {
-         byte[] var4 = new byte[512];
-         SysLib.rawread(this.indirect, var4);
-         int var5 = var3 - 11;
-         if (SysLib.bytes2short(var4, var5 * 2) > 0) {
-            SysLib.cerr("indexBlock, indirectNumber = " + var5 + " contents = " + SysLib.bytes2short(var4, var5 * 2) + "\n");
+         byte[] buffer = new byte[512];
+         SysLib.rawread(this.indirect, buffer);
+         int offset = blockPtr - 11;
+         if (SysLib.bytes2short(buffer, offset * 2) > 0) {
+            SysLib.cerr("indexBlock, indirectNumber = " + offset + " contents = " + SysLib.bytes2short(buffer, offset * 2) + "\n");
             return -1;
          } else {
-            SysLib.short2bytes(blockNumber, var4, var5 * 2);
-            SysLib.rawwrite(this.indirect, var4);
+            SysLib.short2bytes(blockNumber, buffer, offset * 2);
+            SysLib.rawwrite(this.indirect, buffer);
             return 0;
          }
       }
@@ -163,8 +163,8 @@ public class Inode {
     * //Todo
     ***************************************************************************/
    boolean makeIndexBlock(short blockNumber) {
-      for(int var2 = 0; var2 < 11; ++var2) {
-         if (this.direct[var2] == -1) {
+      for(int i = 0; i < 11; ++i) {
+         if (this.direct[i] == -1) {
             return false;
          }
       }
@@ -173,13 +173,13 @@ public class Inode {
          return false;
       } else {
          this.indirect = blockNumber;
-         byte[] var4 = new byte[512];
+         byte[] buffer = new byte[512];
 
-         for(int var3 = 0; var3 < 256; ++var3) {
-            SysLib.short2bytes((short)-1, var4, var3 * 2);
+         for(int i = 0; i < 256; ++i) {
+            SysLib.short2bytes((short)-1, buffer, i * 2);
          }
 
-         SysLib.rawwrite(blockNumber, var4);
+         SysLib.rawwrite(blockNumber, buffer);
          return true;
       }
    }
@@ -192,10 +192,10 @@ public class Inode {
     ***************************************************************************/
    byte[] deleteIndexBlock() {
       if (this.indirect >= 0) {
-         byte[] var1 = new byte[512];
-         SysLib.rawread(this.indirect, var1);
+         byte[] buffer = new byte[512];
+         SysLib.rawread(this.indirect, buffer);
          this.indirect = -1;
-         return var1;
+         return buffer;
       } else {
          return null;
       }

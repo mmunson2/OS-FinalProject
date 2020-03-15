@@ -1,8 +1,14 @@
+/*******************************************************************************
+ *
+ ******************************************************************************/
 class SuperBlock {
    public int totalBlocks; // the number of disk blocks
    public int totalInodes; // the number of inodes
    public int freeList;    // the block number of the free list's head
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public SuperBlock( int diskSize ) {
         byte[] superBlock = new byte[Disk.blockSize];
 	short seek = 0; // offset variable
@@ -25,6 +31,9 @@ class SuperBlock {
    }
 
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public void format(int num) {
 
         totalInodes = num;
@@ -56,6 +65,9 @@ class SuperBlock {
         syncBlock();
     }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public void syncBlock() {
         byte[] superBlock = new byte[Disk.blockSize];
 
@@ -70,6 +82,9 @@ class SuperBlock {
         SysLib.rawwrite(0, superBlock);
     }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public int getNextBlock() {
 	if (freeList <= 0 || freeList > totalBlocks)
 		return -1;
@@ -89,6 +104,9 @@ class SuperBlock {
         return free;
     }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public boolean setBlock(int block) {
         if (block < 0) 
 		    return false;
@@ -110,6 +128,9 @@ class SuperBlock {
         return true;
     }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public void printFreeList()
     {
         //System.out.println("\nFreeList: " + this.freeList + "\n");

@@ -1,3 +1,6 @@
+/*******************************************************************************
+ *
+ ******************************************************************************/
 public class Directory {
     private static int maxChars = 30; // max characters of each file name
 
@@ -5,6 +8,9 @@ public class Directory {
     private int fsize[]; // each element stores a different file size.
     private char fnames[][]; // each element stores a different file name.
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public Directory(int maxInumber) { // directory constructor
         fsize = new int[maxInumber]; // maxInumber = max files
         for (int i = 0; i < maxInumber; i++)
@@ -15,6 +21,9 @@ public class Directory {
         root.getChars(0, fsize[0], fnames[0], 0); // fnames[0] includes "/"
     }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public void bytes2directory(byte data[]) {
         // assumes data[] received directory information from disk
         // initializes the Directory instance with this data[]
@@ -38,6 +47,9 @@ public class Directory {
         }
     }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public byte[] directory2bytes() {
         // converts and return Directory information into a plain byte array
         // this byte array will be written back to disk
@@ -68,6 +80,9 @@ public class Directory {
         return buffer;
     }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
     public short ialloc(String fileName) {
         // filename is the one of a file to be created.
         // allocates a new inode number for this filename
@@ -91,30 +106,16 @@ public class Directory {
             return true;
         }
 
-        /*
-        public short namei(String fileName)
-        {
-            // returns the inumber corresponding to this filename
-            for (int i = 0; i < this.fsize.length; i++)
-            {
-                String fileNameCheck = new String(this.fnames[i], 0, this.fsize[i]);
-                if (fileName.equals(fileNameCheck))
-                    return (short) i;
-            }
-            return -1;
-        }
-        */
 
-        public short namei(String var1) {
-            for(short var2 = 0; var2 < this.fsize.length; ++var2) {
-                if (this.fsize[var2] == var1.length()) {
-                    String var3 = new String(this.fnames[var2], 0, this.fsize[var2]);
-                    if (var1.compareTo(var3) == 0) {
-                        return var2;
+        public short namei(String fileName) {
+            for(short i = 0; i < this.fsize.length; ++i) {
+                if (this.fsize[i] == fileName.length()) {
+                    String compareFile = new String(this.fnames[i], 0, this.fsize[i]);
+                    if (fileName.equals(compareFile)) {
+                        return i;
                     }
                 }
             }
-
             return -1;
         }
 

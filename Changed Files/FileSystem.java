@@ -1,8 +1,14 @@
+/*******************************************************************************
+ *
+ ******************************************************************************/
 public class FileSystem {
    private SuperBlock superblock;
    private Directory directory;
    private FileTable filetable;
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public FileSystem( int diskBlocks ) {
       // create superblock, and format disk with 64 inodes in default
       superblock = new SuperBlock( diskBlocks );
@@ -24,6 +30,9 @@ public class FileSystem {
       close( dirEnt );
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public void sync( )
    {
        FileTableEntry fileTable = this.open("/", "w");
@@ -33,6 +42,9 @@ public class FileSystem {
        this.superblock.syncBlock();
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    boolean format( int files )
    {
        while(!this.filetable.fempty())
@@ -46,6 +58,9 @@ public class FileSystem {
        return true;
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public FileTableEntry open( String filename, String mode )
    {
        FileTableEntry fileTableEntry = this.filetable.falloc(filename, mode);
@@ -60,6 +75,9 @@ public class FileSystem {
        }
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public synchronized boolean close( FileTableEntry ftEnt )
    {
        ftEnt.count--;
@@ -67,11 +85,17 @@ public class FileSystem {
        return ftEnt.count > 0 || this.filetable.ffree(ftEnt);
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public synchronized int fsize( FileTableEntry ftEnt )
    {
        return ftEnt.inode.length;
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public int read( FileTableEntry ftEnt, byte[] buffer )
    {
        if (ftEnt.mode != "w" && ftEnt.mode != "a") {
@@ -88,13 +112,13 @@ public class FileSystem {
                    byte[] buffer2 = new byte[512];
                    SysLib.rawread(targetBlock, buffer2);
                    int block = ftEnt.seekPtr % 512;
-                   int var9 = 512 - block;
-                   int var10 = this.fsize(ftEnt) - ftEnt.seekPtr;
-                   int var11 = Math.min(Math.min(var9, max), var10);
-                   System.arraycopy(buffer2, block, buffer, index, var11);
-                   ftEnt.seekPtr += var11;
-                   index += var11;
-                   max -= var11;
+                   int offset = 512 - block;
+                   int offset2 = this.fsize(ftEnt) - ftEnt.seekPtr;
+                   int minPos = Math.min(Math.min(offset, max), offset2);
+                   System.arraycopy(buffer2, block, buffer, index, minPos);
+                   ftEnt.seekPtr += minPos;
+                   index += minPos;
+                   max -= minPos;
                }
 
                return index;
@@ -104,34 +128,37 @@ public class FileSystem {
        }
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public int write( FileTableEntry ftEnt, byte[] buffer )
    {
        if (ftEnt.mode == "r") {
            return -1;
        } else {
            synchronized(ftEnt) {
-               int var4 = 0;
-               int var5 = buffer.length;
+               int startPtr = 0;
+               int indexPtr = buffer.length;
 
-               while(var5 > 0) {
-                   int var6 = ftEnt.inode.getBlock(ftEnt.seekPtr);
-                   if (var6 == -1) {
-                       short var7 = (short)this.superblock.getNextBlock();
-                       switch(ftEnt.inode.makeBlock(ftEnt.seekPtr, var7)) {
+               while(indexPtr > 0) {
+                   int block = ftEnt.inode.getBlock(ftEnt.seekPtr);
+                   if (block == -1) {
+                       short nextBlock = (short)this.superblock.getNextBlock();
+                       switch(ftEnt.inode.makeBlock(ftEnt.seekPtr, nextBlock)) {
                            case -3:
-                               short var8 = (short)this.superblock.getNextBlock();
-                               if (!ftEnt.inode.makeIndexBlock(var8)) {
+                               short nextBlock2 = (short)this.superblock.getNextBlock();
+                               if (!ftEnt.inode.makeIndexBlock(nextBlock2)) {
                                    SysLib.cerr("ThreadOS: panic on write\n");
                                    return -1;
                                }
 
-                               if (ftEnt.inode.makeBlock(ftEnt.seekPtr, var7) != 0) {
+                               if (ftEnt.inode.makeBlock(ftEnt.seekPtr, nextBlock) != 0) {
                                    SysLib.cerr("ThreadOS: panic on write\n");
                                    return -1;
                                }
                            case 0:
                            default:
-                               var6 = var7;
+                               block = nextBlock;
                                break;
                            case -2:
                            case -1:
@@ -140,75 +167,83 @@ public class FileSystem {
                        }
                    }
 
-                   byte[] var13 = new byte[512];
-                   if (SysLib.rawread(var6, var13) == -1) {
+                   byte[] buffer2 = new byte[512];
+                   if (SysLib.rawread(block, buffer2) == -1) {
                        System.exit(2);
                    }
 
-                   int var14 = ftEnt.seekPtr % 512;
-                   int var9 = 512 - var14;
-                   int var10 = Math.min(var9, var5);
-                   System.arraycopy(buffer, var4, var13, var14, var10);
-                   SysLib.rawwrite(var6, var13);
-                   ftEnt.seekPtr += var10;
-                   var4 += var10;
-                   var5 -= var10;
+                   int blockPtr = ftEnt.seekPtr % 512;
+                   int blockOffset = 512 - blockPtr;
+                   int minPtr = Math.min(blockOffset, indexPtr);
+                   System.arraycopy(buffer, startPtr, buffer2, blockPtr, minPtr);
+                   SysLib.rawwrite(block, buffer2);
+                   ftEnt.seekPtr += minPtr;
+                   startPtr += minPtr;
+                   indexPtr -= minPtr;
                    if (ftEnt.seekPtr > ftEnt.inode.length) {
                        ftEnt.inode.length = ftEnt.seekPtr;
                    }
                }
 
                ftEnt.inode.toDisk(ftEnt.iNumber);
-               return var4;
+               return startPtr;
            }
        }
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    private boolean clearBlocks(FileTableEntry ftEnt )
    {
        if (ftEnt.inode.count != 1) {
            return false;
        } else {
-           byte[] var2 = ftEnt.inode.deleteIndexBlock();
-           if (var2 != null) {
-               byte var3 = 0;
+           byte[] buffer = ftEnt.inode.deleteIndexBlock();
+           if (buffer != null) {
+               byte startPtr = 0;
 
-               short var4;
-               while((var4 = SysLib.bytes2short(var2, var3)) != -1) {
-                   this.superblock.setBlock(var4);
+               short seekPtr;
+               while((seekPtr = SysLib.bytes2short(buffer, startPtr)) != -1) {
+                   this.superblock.setBlock(seekPtr);
                }
            }
 
-           int var5 = 0;
+           int nextBlock = 0;
 
            while(true) {
-               Inode var10001 = ftEnt.inode;
-               if (var5 >= 11) {
+               if (nextBlock >= 11) {
                    ftEnt.inode.toDisk(ftEnt.iNumber);
                    return true;
                }
 
-               if (ftEnt.inode.direct[var5] != -1) {
-                   this.superblock.setBlock(ftEnt.inode.direct[var5]);
-                   ftEnt.inode.direct[var5] = -1;
+               if (ftEnt.inode.direct[nextBlock] != -1) {
+                   this.superblock.setBlock(ftEnt.inode.direct[nextBlock]);
+                   ftEnt.inode.direct[nextBlock] = -1;
                }
 
-               ++var5;
+               ++nextBlock;
            }
        }
    }
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public boolean delete( String fileName )
    {
-       FileTableEntry var2 = this.open(fileName, "w");
-       short var3 = var2.iNumber;
-       return this.close(var2) && this.directory.ifree(var3);
+       FileTableEntry fileTableEntry = this.open(fileName, "w");
+       short iNumber = fileTableEntry.iNumber;
+       return this.close(fileTableEntry) && this.directory.ifree(iNumber);
    }
 
    private final int SEEK_SET = 0;
    private final int SEEK_CUR = 1;
    private final int SEEK_END = 2;
 
+    /***************************************************************************
+     *
+     **************************************************************************/
    public int seek( FileTableEntry ftEnt, int offset, int whence )
    {
        synchronized(ftEnt) {
