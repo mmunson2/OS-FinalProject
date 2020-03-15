@@ -163,6 +163,68 @@ public class FileSystem {
            }
        }
    }
+/*
+    public int write( FileTableEntry ftEnt, byte[] buffer )
+    {
+        if (ftEnt.mode == "r") {
+            return -1;
+        } else {
+            synchronized(ftEnt) {
+                int startPtr = 0;
+                int bufferIndex = buffer.length;
+
+                while(bufferIndex > 0) {
+                    int targetBlock = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
+                    if (targetBlock == -1) {
+                        short nextBlock = (short)this.superblock.nextBlock();
+                        switch(ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, nextBlock)) {
+                            case -3:
+                                short var8 = (short)this.superblock.nextBlock();
+                                if (!ftEnt.inode.registerIndexBlock(var8)) {
+                                    SysLib.cerr("ThreadOS: panic on write\n");
+                                    return -1;
+                                }
+
+                                if (ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, nextBlock) != 0) {
+                                    SysLib.cerr("ThreadOS: panic on write\n");
+                                    return -1;
+                                }
+                            case 0:
+                            default:
+                                targetBlock = nextBlock;
+                                break;
+                            case -2:
+                            case -1:
+                                SysLib.cerr("ThreadOS: filesystem panic on write\n");
+                                return -1;
+                        }
+                    }
+
+                    byte[] readBuffer = new byte[512];
+                    if (SysLib.rawread(targetBlock, readBuffer) == -1) {
+                        System.exit(2);
+                    }
+
+                    int blockPtr = ftEnt.seekPtr % 512;
+                    int blockOffset = 512 - blockPtr;
+                    int length = Math.min(blockOffset, bufferIndex);
+                    System.arraycopy(readBuffer, startPtr, readBuffer, blockPtr, length);
+                    SysLib.rawwrite(targetBlock, readBuffer);
+                    ftEnt.seekPtr += length;
+                    startPtr += length;
+                    bufferIndex -= length;
+                    if (ftEnt.seekPtr > ftEnt.inode.length) {
+                        ftEnt.inode.length = ftEnt.seekPtr;
+                    }
+                }
+
+                ftEnt.inode.toDisk(ftEnt.iNumber);
+                return startPtr;
+            }
+        }
+    }
+   */
+
 
    private boolean deallocAllBlocks( FileTableEntry ftEnt )
    {

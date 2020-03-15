@@ -77,7 +77,6 @@ public class Directory {
                 fileName.getChars(0, this.fsize[i], this.fnames[i], 0);
                 return (short) i;
             }
-            return -1;
         }
 
         return -1;
