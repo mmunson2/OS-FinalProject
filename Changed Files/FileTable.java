@@ -1,7 +1,9 @@
 import java.util.Vector;
 
 /*******************************************************************************
+ * FileTable
  *
+ * Contains a vector and root directory for managing files
  ******************************************************************************/
 public class FileTable {
 
@@ -9,24 +11,36 @@ public class FileTable {
     private Directory dir; // the root directory 
 
     /***************************************************************************
+     * FileTable constructor
      *
+     * Takes a directory, initializes table without input
      **************************************************************************/
-    public FileTable(Directory directory) { // constructor
-        table = new Vector(); // instantiate a file (structure) table
-        dir = directory; // receive a reference to the Director
+    FileTable(Directory directory)
+    {
+        this.table = new Vector(); // instantiate a file (structure) table
+        this.dir = directory; // receive a reference to the Directory
     } // from the file system
 
-    // major public methods
     /***************************************************************************
+     * falloc
      *
+     * Allocates space in the table for a file
      **************************************************************************/
-    public synchronized FileTableEntry falloc( String filename, String mode )
+    synchronized FileTableEntry falloc( String filename, String mode )
     {
-        Inode inode = null;
-        short iNumber = -1;
+        Inode inode;
+        short iNumber;
         while( true )
         {
-            iNumber = ( filename.equals( "/" ) ? 0 : dir.namei( filename ) );
+            if(filename.equals( "/" ))
+            {
+                iNumber = 0;
+            }
+            else
+            {
+                iNumber = this.dir.namei( filename );
+            }
+
             if( iNumber >= 0 )
             {
                 // Loads the existing inode from disk
@@ -81,8 +95,7 @@ public class FileTable {
                 if( mode.equals( "r" ) )
                     return null;
 
-                inode = new Inode( );
-                iNumber = dir.ialloc( filename );
+                iNumber = this.dir.ialloc( filename );
 
                 // No more room for additional files/inodes?
                 if( iNumber == -1 )
@@ -94,32 +107,44 @@ public class FileTable {
 
         inode.toDisk( iNumber );
 
-        FileTableEntry fEnt = new FileTableEntry( inode, iNumber, mode );
+        FileTableEntry fileTableEntry =
+                new FileTableEntry( inode, iNumber, mode );
 
-        this.table.add( fEnt );
+        this.table.add( fileTableEntry );
 
-        return fEnt;
+        return fileTableEntry;
 
     }
 
-    public synchronized boolean ffree(FileTableEntry e) {
-        // receive a file table entry reference
-        // save the corresponding inode to the disk
-        // free this file table entry.
-        // return true if this file table entry found in my table
-
-        if (this.table.removeElement(e)) {
+    /***************************************************************************
+     * ffree
+     *
+     * • receive a file table entry reference
+     * • save the corresponding inode to the disk
+     * • free this file table entry.
+     * • return true if this file table entry found in my table
+     **************************************************************************/
+    synchronized boolean ffree(FileTableEntry e)
+    {
+        if (this.table.removeElement(e))
+        {
             e.inode.count--; //remove inode
             e.inode.flag = 0;
             e.inode.toDisk(e.iNumber);
-            e = null;
             this.notify();
             return true;
         }
         return false;
     }
 
-    public synchronized boolean fempty() {
-        return table.isEmpty(); // return if table is empty 
-    } // should be called before starting a format
+    /***************************************************************************
+     * fempty
+     *
+     * • Checks if the file table is empty
+     * • should be called before starting a format
+     **************************************************************************/
+    public synchronized boolean fempty()
+    {
+        return table.isEmpty();
+    }
 }

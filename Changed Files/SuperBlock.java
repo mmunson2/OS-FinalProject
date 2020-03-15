@@ -1,58 +1,64 @@
 /*******************************************************************************
+ * SuperBlock
  *
+ * The first block in memory containing pointers to all others
  ******************************************************************************/
 class SuperBlock {
-   public int totalBlocks; // the number of disk blocks
-   public int totalInodes; // the number of inodes
-   public int freeList;    // the block number of the free list's head
+   private int totalBlocks; // the number of disk blocks
+   int totalInodes; // the number of inodes
+   private int freeList;    // the block number of the free list's head
 
     /***************************************************************************
+     * Superblock Constructor
      *
+     * Takes in the size of the disk
      **************************************************************************/
-   public SuperBlock( int diskSize ) {
+   SuperBlock( int diskSize )
+   {
         byte[] superBlock = new byte[Disk.blockSize];
-	short seek = 0; // offset variable
-        SysLib.rawread(0, superBlock); //read first block to superBlock
-        totalBlocks = SysLib.bytes2int(superBlock, seek);
-	seek += Integer.SIZE / Byte.SIZE;
+	    short seek = 0; // offset variable
+        //read first block to superBlock
+        SysLib.rawread(0, superBlock);
+        this.totalBlocks = SysLib.bytes2int(superBlock, seek);
+	    seek += Integer.SIZE / Byte.SIZE;
         this.totalInodes = SysLib.bytes2int(superBlock, seek);
-	seek += Integer.SIZE / Byte.SIZE;
-        freeList = SysLib.bytes2int(superBlock, seek);
+	    seek += Integer.SIZE / Byte.SIZE;
+        this.freeList = SysLib.bytes2int(superBlock, seek);
 
-        if (totalBlocks == diskSize 
-	&& this.totalInodes > 0
-	&& freeList >= 2) {
-            return;
+        if (this.totalBlocks != diskSize || this.totalInodes < 0
+                || this.freeList <= 2)
+        {
+            this.totalBlocks = diskSize;
+            format(64);
         }
-	else{
-        totalBlocks = diskSize;
-        format(64);
-	}
    }
 
 
     /***************************************************************************
+     * format
      *
+     * formats the superblock
      **************************************************************************/
-    public void format(int num) {
+    void format(int num)
+    {
 
-        totalInodes = num;
+        this.totalInodes = num;
 
-        for(int i = 0; i < totalInodes; i++) {
+        for(int i = 0; i < this.totalInodes; i++)
+        {
             Inode newInode = new Inode();
             newInode.flag = 0;
             newInode.toDisk((short)i);
         }
 
-        //freeList = (Short.SIZE / Byte.SIZE) + (totalInodes * 32);
-	    //freeList /= Disk.blockSize;
-
         this.freeList = 2 + this.totalInodes * 32 / 512;
 
-        for(int i = freeList; i < totalBlocks; i++) {
+        for(int i = this.freeList; i < this.totalBlocks; i++)
+        {
             byte[] data = new byte[Disk.blockSize];
 
-            for(int j = 0; j < Disk.blockSize; j++) {
+            for(int j = 0; j < Disk.blockSize; j++)
+            {
                 data[j] = 0;
             }
 
@@ -66,35 +72,21 @@ class SuperBlock {
     }
 
     /***************************************************************************
+     * getNextBlock
      *
+     * Returns the next free block
      **************************************************************************/
-    public void syncBlock() {
-        byte[] superBlock = new byte[Disk.blockSize];
+    int getNextBlock()
+    {
+	    if (this.freeList <= 0 || this.freeList > this.totalBlocks)
+		    return -1;
 
-	short seek = 0; // offset variable
-
-        SysLib.int2bytes(totalBlocks, superBlock, seek);
-	seek += Integer.SIZE / Byte.SIZE;
-        SysLib.int2bytes(totalInodes, superBlock, seek);
-	seek += Integer.SIZE / Byte.SIZE;
-        SysLib.int2bytes(freeList, superBlock, seek);
-
-        SysLib.rawwrite(0, superBlock);
-    }
-
-    /***************************************************************************
-     *
-     **************************************************************************/
-    public int getNextBlock() {
-	if (freeList <= 0 || freeList > totalBlocks)
-		return -1;
-
-        int free = freeList;
+        int free = this.freeList;
 
         byte[] data = new byte[Disk.blockSize];
         SysLib.rawread(free, data); 
 
-        freeList = SysLib.bytes2int(data, 0);
+        this.freeList = SysLib.bytes2int(data, 0);
 
         SysLib.short2bytes((short)0, data, 0); 
         SysLib.rawwrite(free, data);
@@ -105,15 +97,19 @@ class SuperBlock {
     }
 
     /***************************************************************************
+     * setBlock
      *
+     * Sets a block to a given number
      **************************************************************************/
-    public boolean setBlock(int block) {
+    boolean setBlock(int block)
+    {
         if (block < 0) 
 		    return false;
 	
         byte[] data = new byte[Disk.blockSize];
 
-	for (int i = 0; i < Disk.blockSize; i++) {
+        for (int i = 0; i < Disk.blockSize; i++)
+        {
             data[i] = 0;
         }
 
@@ -121,7 +117,7 @@ class SuperBlock {
 
         SysLib.rawwrite(block, data);
 
-        freeList = block; // setting freelist to this block
+        this.freeList = block; // setting freelist to this block
 
         printFreeList();
 
@@ -129,9 +125,31 @@ class SuperBlock {
     }
 
     /***************************************************************************
+     * syncBlock
      *
+     * Syncs blocks between threads
      **************************************************************************/
-    public void printFreeList()
+    void syncBlock()
+    {
+        byte[] superBlock = new byte[Disk.blockSize];
+
+        short seek = 0; // offset variable
+
+        SysLib.int2bytes(this.totalBlocks, superBlock, seek);
+        seek += Integer.SIZE / Byte.SIZE;
+        SysLib.int2bytes(this.totalInodes, superBlock, seek);
+        seek += Integer.SIZE / Byte.SIZE;
+        SysLib.int2bytes(this.freeList, superBlock, seek);
+
+        SysLib.rawwrite(0, superBlock);
+    }
+
+    /***************************************************************************
+     * printFreeList
+     *
+     * Debug method in an attempt to resolve test18
+     **************************************************************************/
+    private void printFreeList()
     {
         //System.out.println("\nFreeList: " + this.freeList + "\n");
     }
