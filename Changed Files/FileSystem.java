@@ -30,7 +30,7 @@ public class FileSystem {
        byte[] buffer = this.directory.directory2bytes();
        this.write(fileTable, buffer);
        this.close(fileTable);
-       this.superblock.sync();
+       this.superblock.syncBlock();
    }
 
    boolean format( int files )
@@ -50,7 +50,7 @@ public class FileSystem {
    {
        FileTableEntry fileTableEntry = this.filetable.falloc(filename, mode);
 
-       if(mode == "w" && !this.deallocAllBlocks(fileTableEntry))
+       if(mode == "w" && !this.clearBlocks(fileTableEntry))
        {
            return null;
        }
@@ -80,7 +80,7 @@ public class FileSystem {
 
            synchronized(ftEnt) {
                while(max > 0 && ftEnt.seekPtr < this.fsize(ftEnt)) {
-                   int targetBlock = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
+                   int targetBlock = ftEnt.inode.getBlock(ftEnt.seekPtr);
                    if (targetBlock == -1) {
                        break;
                    }
@@ -114,18 +114,18 @@ public class FileSystem {
                int var5 = buffer.length;
 
                while(var5 > 0) {
-                   int var6 = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
+                   int var6 = ftEnt.inode.getBlock(ftEnt.seekPtr);
                    if (var6 == -1) {
-                       short var7 = (short)this.superblock.nextBlock();
-                       switch(ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, var7)) {
+                       short var7 = (short)this.superblock.getNextBlock();
+                       switch(ftEnt.inode.makeBlock(ftEnt.seekPtr, var7)) {
                            case -3:
-                               short var8 = (short)this.superblock.nextBlock();
-                               if (!ftEnt.inode.registerIndexBlock(var8)) {
+                               short var8 = (short)this.superblock.getNextBlock();
+                               if (!ftEnt.inode.makeIndexBlock(var8)) {
                                    SysLib.cerr("ThreadOS: panic on write\n");
                                    return -1;
                                }
 
-                               if (ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, var7) != 0) {
+                               if (ftEnt.inode.makeBlock(ftEnt.seekPtr, var7) != 0) {
                                    SysLib.cerr("ThreadOS: panic on write\n");
                                    return -1;
                                }
@@ -163,81 +163,19 @@ public class FileSystem {
            }
        }
    }
-/*
-    public int write( FileTableEntry ftEnt, byte[] buffer )
-    {
-        if (ftEnt.mode == "r") {
-            return -1;
-        } else {
-            synchronized(ftEnt) {
-                int startPtr = 0;
-                int bufferIndex = buffer.length;
 
-                while(bufferIndex > 0) {
-                    int targetBlock = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
-                    if (targetBlock == -1) {
-                        short nextBlock = (short)this.superblock.nextBlock();
-                        switch(ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, nextBlock)) {
-                            case -3:
-                                short var8 = (short)this.superblock.nextBlock();
-                                if (!ftEnt.inode.registerIndexBlock(var8)) {
-                                    SysLib.cerr("ThreadOS: panic on write\n");
-                                    return -1;
-                                }
-
-                                if (ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, nextBlock) != 0) {
-                                    SysLib.cerr("ThreadOS: panic on write\n");
-                                    return -1;
-                                }
-                            case 0:
-                            default:
-                                targetBlock = nextBlock;
-                                break;
-                            case -2:
-                            case -1:
-                                SysLib.cerr("ThreadOS: filesystem panic on write\n");
-                                return -1;
-                        }
-                    }
-
-                    byte[] readBuffer = new byte[512];
-                    if (SysLib.rawread(targetBlock, readBuffer) == -1) {
-                        System.exit(2);
-                    }
-
-                    int blockPtr = ftEnt.seekPtr % 512;
-                    int blockOffset = 512 - blockPtr;
-                    int length = Math.min(blockOffset, bufferIndex);
-                    System.arraycopy(readBuffer, startPtr, readBuffer, blockPtr, length);
-                    SysLib.rawwrite(targetBlock, readBuffer);
-                    ftEnt.seekPtr += length;
-                    startPtr += length;
-                    bufferIndex -= length;
-                    if (ftEnt.seekPtr > ftEnt.inode.length) {
-                        ftEnt.inode.length = ftEnt.seekPtr;
-                    }
-                }
-
-                ftEnt.inode.toDisk(ftEnt.iNumber);
-                return startPtr;
-            }
-        }
-    }
-   */
-
-
-   private boolean deallocAllBlocks( FileTableEntry ftEnt )
+   private boolean clearBlocks(FileTableEntry ftEnt )
    {
        if (ftEnt.inode.count != 1) {
            return false;
        } else {
-           byte[] var2 = ftEnt.inode.unregisterIndexBlock();
+           byte[] var2 = ftEnt.inode.deleteIndexBlock();
            if (var2 != null) {
                byte var3 = 0;
 
                short var4;
                while((var4 = SysLib.bytes2short(var2, var3)) != -1) {
-                   this.superblock.returnBlock(var4);
+                   this.superblock.setBlock(var4);
                }
            }
 
@@ -251,7 +189,7 @@ public class FileSystem {
                }
 
                if (ftEnt.inode.direct[var5] != -1) {
-                   this.superblock.returnBlock(ftEnt.inode.direct[var5]);
+                   this.superblock.setBlock(ftEnt.inode.direct[var5]);
                    ftEnt.inode.direct[var5] = -1;
                }
 

@@ -17,7 +17,7 @@ public class Kernel_Incomplete
     public final static int SLEEP   =  4; // SysLib.sleep(int milliseconds)
     public final static int RAWREAD =  5; // SysLib.rawread(int blk, byte b[])
     public final static int RAWWRITE=  6; // SysLib.rawwrite(int blk, byte b[])
-    public final static int SYNC    =  7; // SysLib.sync( )
+    public final static int SYNC    =  7; // SysLib.syncBlock( )
     public final static int READ    =  8; // SysLib.cin( )
     public final static int WRITE   =  9; // SysLib.cout( ) and SysLib.cerr( )
 

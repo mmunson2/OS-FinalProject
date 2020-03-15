@@ -51,10 +51,12 @@ class SuperBlock {
             SysLib.rawwrite(i, data);
         }
 
-        sync();
+        printFreeList();
+
+        syncBlock();
     }
 
-    public void sync() {
+    public void syncBlock() {
         byte[] superBlock = new byte[Disk.blockSize];
 
 	short seek = 0; // offset variable
@@ -68,7 +70,7 @@ class SuperBlock {
         SysLib.rawwrite(0, superBlock);
     }
 
-    public int nextBlock() {
+    public int getNextBlock() {
 	if (freeList <= 0 || freeList > totalBlocks)
 		return -1;
 
@@ -81,11 +83,13 @@ class SuperBlock {
 
         SysLib.short2bytes((short)0, data, 0); 
         SysLib.rawwrite(free, data);
-      
+
+        printFreeList();
+
         return free;
     }
 
-    public boolean returnBlock(int block) {
+    public boolean setBlock(int block) {
         if (block < 0) 
 		    return false;
 	
@@ -100,7 +104,16 @@ class SuperBlock {
         SysLib.rawwrite(block, data);
 
         freeList = block; // setting freelist to this block
+
+        printFreeList();
+
         return true;
-      
-    }	
+    }
+
+    public void printFreeList()
+    {
+        //System.out.println("\nFreeList: " + this.freeList + "\n");
+    }
+
+
 }
